@@ -3,7 +3,7 @@ module github.com/colonel-byte/terraform-provider-cargoship
 go 1.27.3
 
 require (
-	github.com/colonel-byte/cargoship v0.0.0
+	github.com/colonel-byte/cargoship v0.35.1-0.20261023233849-d72b98e1d47a
 	github.com/goccy/go-yaml v1.19.2
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
 	github.com/hashicorp/terraform-plugin-go v0.31.0
@@ -237,7 +237,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-// cargoship is consumed as a library: pkg/riglogger and cluster.Parse were exported for this
-// provider and are not in a tagged release yet. Drop this once a cargoship release carries them.
-replace github.com/colonel-byte/cargoship => ../colonel-byte_cargoship
