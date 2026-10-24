@@ -8,3 +8,8 @@ docs/index.md linguist-generated
 docs/resources/**/*.md linguist-generated
 docs/data-sources/**/*.md linguist-generated
 docs/guides/**/*.md linguist-generated
+
+# The vendored tree is committed so a build works with no module proxy reachable. Marking it
+# keeps 7k files of other people's code out of the repository's language statistics and
+# collapsed in a diff.
+vendor/** linguist-vendored
