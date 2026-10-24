@@ -1,6 +1,6 @@
 # Running the OpenTofu provider
 
-The provider lives at `cmd/terraform-provider-cargoship`, with its implementation in `internal/tofuprovider`. It is a package of this module rather than a module of its own; [choice-tofu-provider-layout](../agent/choice-tofu-provider-layout.md) records why, and [design-tofu-provider-install](../agent/design-tofu-provider-install.md) is the plan for what it will do. This page is how to run what exists.
+The plugin entry point is `main.go` at the root of this repository and the implementation is `internal/provider`. cargoship itself is a library dependency: the phases an apply runs are the ones the CLI runs. [choice-tofu-provider-layout](../agent/choice-tofu-provider-layout.md) records why the provider began as a package of cargoship's module, and [design-tofu-provider-install](../agent/design-tofu-provider-install.md) is the plan it was built to. This page is how to run what exists.
 
 ## What exists
 
@@ -8,20 +8,17 @@ One resource, `cargoship_cluster`, and one data source, `cargoship_cluster_facts
 
 `cargoship_cluster` converges a cluster on its configuration: `Create` and `Update` are the same call, because `action.NewApply` builds one phase list covering install, join and upgrade with each phase gated by its own `ShouldRun`. `Read` refreshes what the hosts report. `Delete` resets the cluster unless `retain_on_destroy` is set, in which case it drops it from state with a warning and leaves it running.
 
-The data source, `cargoship_cluster_facts`. It runs `action.NewRefresh`, the read-only half of an apply -- `Connect`, `DetectOS`, `GatherFacts`, `GatherFactsDistro`, `Disconnect` -- and reports what each host says: operating system, version, architecture, hostname, private address, and the engine version it is running. It takes no cluster lock and writes nothing to any host. The phase list lives in `pkg/action` rather than in the provider so that "which phases are safe to run" is decided once; [docs/phases/refresh.md](../phases/refresh.md) is generated from it.
+The data source, `cargoship_cluster_facts`. It runs `action.NewRefresh`, the read-only half of an apply -- `Connect`, `DetectOS`, `GatherFacts`, `GatherFactsDistro`, `Disconnect` -- and reports what each host says: operating system, version, architecture, hostname, private address, and the engine version it is running. It takes no cluster lock and writes nothing to any host. The phase list lives in `pkg/action` rather than in the provider so that "which phases are safe to run" is decided once; [docs/phases/refresh.md](https://github.com/colonel-byte/cargoship/blob/main/docs/phases/refresh.md) is generated from it.
 
 What is **not** there yet: `ModifyPlan`, so the plan-time downgrade and removed-host checks of [#307](https://github.com/colonel-byte/cargoship/issues/307) do not run; `ImportState`, which cannot work from an ID alone because the host blocks and their key paths are not recoverable from a running cluster; and acceptance tests. The `engine_version` of each node is in state, which is the input the plan-time check needs.
 
 ## The development loop
 
+Build the provider for this machine into a `filesystem_mirror` layout:
+
 ```sh
-mage release:tofuProviderDev 0.1.0
-```
-
-That builds the provider for this machine into a `filesystem_mirror` layout under `build/`, and prints the directory to point OpenTofu at:
-
-```
-build/tofu-provider/mirror/registry.opentofu.org/colonel-byte/cargoship/0.1.0/linux_amd64/terraform-provider-cargoship_v0.1.0
+mkdir -p build/mirror/registry.opentofu.org/colonel-byte/cargoship/0.1.0/linux_amd64
+go build -o build/mirror/registry.opentofu.org/colonel-byte/cargoship/0.1.0/linux_amd64/terraform-provider-cargoship_v0.1.0 .
 ```
 
 Three things about that path are not arbitrary. The registry hostname is part of it because a configuration resolves a provider by source address and a mirror redirects that address rather than replacing it. The version directory has to hold a version OpenTofu accepts: **`0.0.0` is refused** -- it is reserved for a provider that is not published, and `tofu init` says so and points at `dev_overrides` -- so use `0.1.0` or anything higher. And the binary is named `terraform-provider-cargoship_v<version>`, which is the name OpenTofu looks for inside the directory.
@@ -32,7 +29,7 @@ Point a CLI configuration at the mirror:
 # ~/.tofurc, or anywhere named by TF_CLI_CONFIG_FILE
 provider_installation {
   filesystem_mirror {
-    path    = "/path/to/cargoship/build/tofu-provider/mirror"
+    path    = "/path/to/terraform-provider-cargoship/build/mirror"
     include = ["registry.opentofu.org/colonel-byte/*"]
   }
   direct {
@@ -108,7 +105,8 @@ nodes = [
 **`tofu init` records a checksum of the provider binary in `.terraform.lock.hcl`, so a rebuilt binary fails the next plan** with "does not match any of the checksums recorded in the dependency lock file". Delete the lock file and re-init:
 
 ```sh
-mage release:tofuProviderDev 0.1.0 && rm -f .terraform.lock.hcl && tofu init && tofu plan
+go build -o build/mirror/registry.opentofu.org/colonel-byte/cargoship/0.1.0/linux_amd64/terraform-provider-cargoship_v0.1.0 . \
+  && rm -f .terraform.lock.hcl && tofu init && tofu plan
 ```
 
 That is the whole loop. Bump the version instead if you want two builds side by side.
@@ -118,7 +116,7 @@ That is the whole loop. Bump the version instead if you want two builds side by 
 OpenTofu launches a provider as a child process over a plugin protocol, so there is no `go run` path into it. Build it and run it with `--debug`, which prints a `TF_REATTACH_PROVIDERS` value to export in the shell that runs `tofu`:
 
 ```sh
-go build -o /tmp/provider ./cmd/terraform-provider-cargoship
+go build -o /tmp/provider .
 /tmp/provider --debug
 ```
 
@@ -143,7 +141,7 @@ Both the `chown` and the mode matter: `docker cp` leaves the file owned by which
 
 Then point a host block at `127.0.0.1` port `2223` with `key_path = "/tmp/facts-key"`, and `SSH_KNOWN_HOSTS=""` so the container's regenerated host key is not checked against a known-hosts file. Remove it with `docker rm -f facts-host` when finished.
 
-For a fleet rather than one host, the cluster e2e suite writes a full inventory while it runs -- see [e2e-tests](e2e-tests.md) -- and the addresses, user and key path in it are what a host block needs. `mage dev:vmUp -control=1 -worker=0` writes the same thing for a single virtual machine, which is the easier route when the host needs a real kernel rather than only an sshd; see [microvm](microvm.md).
+For a fleet rather than one host, the cluster e2e suite writes a full inventory while it runs -- see [e2e-tests](https://github.com/colonel-byte/cargoship/blob/main/docs/dev/e2e-tests.md) -- and the addresses, user and key path in it are what a host block needs. `mage dev:vmUp -control=1 -worker=0` writes the same thing for a single virtual machine, which is the easier route when the host needs a real kernel rather than only an sshd; see [microvm](https://github.com/colonel-byte/cargoship/blob/main/docs/dev/microvm.md).
 
 ## Where the phase logs go
 
@@ -156,11 +154,12 @@ The handler is on the path of every log line a run produces, which is why it is 
 An apply needs a package and a fleet, so the loop is longer than the data source's:
 
 ```sh
+# from a checkout of https://github.com/colonel-byte/cargoship
 mage build:binary
 ./build/cargoship_linux_amd64 package create example/k3s-flannel/v1_36/v1.36.4-k3s1 --output /srv/staging
 ```
 
-That pulls the engine's artifacts and images, which is the one step that needs a network and around 1.5GB. Point `package` at the `.tar.zst` it writes, and the host blocks at a fleet -- the cluster e2e suite's bootloose inventory is the cheapest one to hand, see [e2e-tests](e2e-tests.md).
+That pulls the engine's artifacts and images, which is the one step that needs a network and around 1.5GB. Point `package` at the `.tar.zst` it writes, and the host blocks at a fleet -- the cluster e2e suite's bootloose inventory is the cheapest one to hand, see [e2e-tests](https://github.com/colonel-byte/cargoship/blob/main/docs/dev/e2e-tests.md).
 
 Two things to expect from the first apply. It is long and it looks silent: the phases log through cargoship's own logger, and OpenTofu shows a resource as "Still creating..." until the whole run returns. And a run that fails part way through **still writes state** -- deliberately, because an apply that failed has already changed hosts, and a resource that returned without writing would leave the next plan deciding nothing is installed and re-bootstrapping a live cluster. The error says so, and the nodes it reached are in state.
 
@@ -183,25 +182,23 @@ Raise it for a fleet that is genuinely slow to answer. Note that an authenticati
 ## Running the tests
 
 ```sh
-go test ./internal/tofuprovider/...     # unit: translation, state mapping, diagnostics
-go test ./pkg/action/...                # the actions the provider calls, including the read-only one
-go test ./cmd/cargoship/                # holds that the CLI does not reach the provider's packages
+go test ./internal/provider/...         # unit: translation, state mapping, diagnostics
 ```
+
+The actions the provider calls are cargoship's, and are tested there: `go test ./pkg/action/...` in a checkout of that repository.
 
 The unit tests need no cluster, no SSH and no `tofu` binary, and they are the ones that cover most of what a provider gets wrong. They can, because the provider calls cargoship through one interface -- `converger` -- which a fake implements from a table: everything below it needs a fleet, and everything above it is the state mapping and the diagnostics.
 
-`TestCargoshipDoesNotDependOnTheProvider` is what keeps the provider's dependencies out of the CLI. The property it holds is that the linker never loads a package the import graph does not reach, so `cargoship` is the same size whatever the provider depends on -- and one import from a package the CLI already uses would undo that silently. It reads `go list -deps` and fails on any dependency under the provider's packages or `terraform-plugin`.
-
-The end-to-end half is `mage test:endToEndTofu`: three bootloose machines, the real `tofu` CLI, and the shipped module, walked from `init` through a removal to a destroy. It builds the provider into the same mirror this page's development loop uses, and skips when there is no `tofu` on PATH. See [e2e-tofu-tests](e2e-tofu-tests.md) for what each step holds and what it leaves uncovered.
+The end-to-end half has not moved to this repository yet: it depends on cargoship's bootloose and microvm fleet harness, which is not importable across the module boundary. It still runs there as `mage test:endToEndTofu` -- three machines, the real `tofu` CLI, and the shipped module, walked from `init` through a removal to a destroy. See [e2e-tofu-tests](e2e-tofu-tests.md) for what each step holds and what it leaves uncovered.
 
 That suite stands in for acceptance tests with `terraform-plugin-testing`, which would need the same `tofu` binary and `TF_ACC_TERRAFORM_PATH` pointing at it -- the framework's harness looks for `terraform` by default. What the framework would add over the suite is per-step plan assertions; what it would not is the module, which is the layer a practitioner actually consumes.
 
 ## Driving it from Terragrunt
 
-[`example/terragrunt/`](https://github.com/colonel-byte/cargoship/tree/main/example/terragrunt) is a worked layout: modules under `terraform/modules/`, one directory per cluster under `terraform/inventory/`, and nothing in a module that names a cluster. [opentofu-terragrunt](../guides/opentofu-terragrunt.md) is the operator-facing guide to it.
+[`examples/terragrunt/`](../../examples/terragrunt) is a worked layout: modules under `terraform/modules/`, one directory per cluster under `terraform/inventory/`, and nothing in a module that names a cluster. [opentofu-terragrunt](../guides/opentofu-terragrunt.md) is the operator-facing guide to it.
 
 Two things that cost a run each when they are missed. Terragrunt drives Terraform unless told otherwise, so `TG_TF_PATH=tofu` has to be exported. And the root of the inventory is `root.hcl` rather than `terragrunt.hcl`, because current Terragrunt warns that a `terragrunt.hcl` at the root of a tree is an anti-pattern and will become an error -- and it errors outright on the `skip = true` that used to accompany it.
 
 ## Publishing
 
-`mage release:tofuProvider <version>` builds every published platform and pushes an OCI image index to `ghcr.io` as an OpenTofu provider mirror; `mage release:tofuProviderLayout <version>` stops before the push and leaves the artifact under `build/` to inspect. See [mage](mage.md) and [release-tofu-provider](../workflows/release-tofu-provider.md).
+A release is cut by tagging: [`.goreleaser.yaml`](../../.goreleaser.yaml) builds every published platform, writes the zips and `SHA256SUMS` the registry protocol parses, and signs the checksums with both GPG and cosign. `goreleaser release --snapshot --clean --skip=sign` produces the same layout under `dist/` without publishing or signing anything, which is the way to check the artifact shape.

@@ -85,7 +85,7 @@ sops exec-env secrets.enc.yml 'terragrunt apply'
 
 **A failed apply still writes state, on purpose.** An apply that failed part way through has already changed hosts, so the resource records what it reached and reports the error alongside it. A resource that wrote nothing would leave the next plan deciding nothing is installed, and re-bootstrapping a live cluster.
 
-**Removing a host entry does not remove the node.** An apply reconciles nothing downwards: the machine keeps running and stays joined, and the next apply stops rather than walking past it. `allow_unmanaged_nodes` downgrades that to a warning. The reasoning is in [choice-removed-hosts](../../docs/agent/choice-removed-hosts.md), and the short version is that a configuration no longer describing a host also no longer describes how to reach it.
+**Removing a host entry does not remove the node.** An apply reconciles nothing downwards: the machine keeps running and stays joined, and the next apply stops rather than walking past it. `allow_unmanaged_nodes` downgrades that to a warning. The reasoning is in [choice-removed-hosts](https://github.com/colonel-byte/cargoship/blob/main/docs/agent/choice-removed-hosts.md), and the short version is that a configuration no longer describing a host also no longer describes how to reach it.
 
 **A destroy resets the cluster.** `retain_on_destroy` drops the resource and leaves the cluster running instead, with a warning naming it.
 

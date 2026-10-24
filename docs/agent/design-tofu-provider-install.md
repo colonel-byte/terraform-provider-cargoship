@@ -1,5 +1,7 @@
 # How the OpenTofu provider will perform an install
 
+> **Where this was written.** The design note the provider was built to, written while it lived in [`colonel-byte/cargoship`](https://github.com/colonel-byte/cargoship). The layering, the `converger` seam and the schema decisions all still hold; the paths do not - `internal/tofuprovider` is `internal/provider` here, `cmd/terraform-provider-cargoship` is `main.go`, and the vendoring and mage sections describe cargoship's build rather than this one.
+
 > A plan under review, not a record of a decision. The `choice-*` documents beside it describe what was settled; this describes work that has not started, and it should either become one of them or be deleted once the provider exists.
 
 ## Context
