@@ -1,0 +1,10 @@
+# The config for pull request titles. The workflow lints the title rather than the commits,
+# because pull requests here are squash-merged and the title becomes the commit message.
+extends:
+  - "@commitlint/config-conventional"
+rules:
+  subject-case:
+    - 0
+    - always
+    - - "lower-case"
+      - "sentence-case"
