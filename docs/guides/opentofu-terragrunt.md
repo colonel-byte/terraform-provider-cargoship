@@ -1,6 +1,13 @@
+---
+page_title: "Driving Cargoship from OpenTofu and Terragrunt"
+subcategory: "Guides"
+description: |-
+  Installing the provider, the layout that keeps one module serving many clusters, and the four behaviours that make cargoship_cluster different from the resources a practitioner is used to.
+---
+
 # Driving Cargoship from OpenTofu and Terragrunt
 
-This guide covers installing the cargoship OpenTofu provider, the layout that keeps one module serving many clusters, and the four behaviours that make this resource different from the ones a practitioner is used to. The worked layout it describes is in [`example/terragrunt/`](https://github.com/colonel-byte/cargoship/tree/main/example/terragrunt); [tofu-provider](../dev/tofu-provider.md) is the developer-facing page for building and debugging the provider itself.
+This guide covers installing the cargoship OpenTofu provider, the layout that keeps one module serving many clusters, and the four behaviours that make this resource different from the ones a practitioner is used to. The worked layout it describes is in [`examples/terragrunt/`](https://github.com/colonel-byte/terraform-provider-cargoship/tree/main/examples/terragrunt); [tofu-provider](https://github.com/colonel-byte/terraform-provider-cargoship/blob/main/docs/dev/tofu-provider.md) is the developer-facing page for building and debugging the provider itself.
 
 The provider is early. A `cargoship_cluster` resource converges a cluster and a `cargoship_cluster_facts` data source reads one, and what is not there yet is named at the end.
 
