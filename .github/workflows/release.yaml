@@ -62,5 +62,11 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          # The organisation secrets are COSIGN_KEY and COSIGN_PASS. cargoship reads
+          # COSIGN_PRIVATE_KEY and COSIGN_PASSWORD instead, because it overrides both with
+          # repository-level secrets of those names -- this repository has none, so copying its
+          # workflow verbatim left cosign with an empty key and would have failed the release at
+          # the signing step. The env var names stay as cosign expects them; only the secrets
+          # feeding them change.
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASS }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_KEY }}
