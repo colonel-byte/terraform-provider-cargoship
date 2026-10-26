@@ -29,7 +29,14 @@ repos:
     rev: v1.2.0
     hooks:
       - id: addlicense
-        exclude: vendor/.*
+        # The .tf files under examples/ are copied verbatim into the generated pages under
+        # docs/ by tfplugindocs, so a licence header on one is a licence header in the middle
+        # of every Example Usage block a practitioner reads.
+        exclude: |-
+          (?x)^(
+              vendor/.*|
+              examples/.*\.tf
+          )$
         exclude_types:
           - yaml
           - markdown

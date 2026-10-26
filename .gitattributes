@@ -1,0 +1,10 @@
+# Written by hack/generate-docs.sh (tfplugindocs). Marking them collapses the regenerated
+# pages in a diff and keeps them out of the repository's language statistics.
+#
+# Only the trees tfplugindocs owns are listed. docs/agent/ and docs/dev/ sit beside them and
+# are hand-written, and templates/guides/ is the source the guide under docs/guides/ is copied
+# from -- so the copy is generated and its template is not.
+docs/index.md linguist-generated
+docs/resources/**/*.md linguist-generated
+docs/data-sources/**/*.md linguist-generated
+docs/guides/**/*.md linguist-generated
