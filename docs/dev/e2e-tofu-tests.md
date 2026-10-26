@@ -1,5 +1,7 @@
 # Running the OpenTofu Provider End-to-End Tests
 
+> **This suite has not moved yet.** It depends on cargoship's bootloose and microvm fleet harness, which a separate Go module cannot import, so it still lives at `test/e2e/tofu/` in [`colonel-byte/cargoship`](https://github.com/colonel-byte/cargoship) and is run from a checkout of that repository. Every path and `mage` target below is relative to it.
+
 `test/e2e/tofu/` is the only suite that drives cargoship the way an OpenTofu practitioner does: it runs the real `tofu` binary over the module in `example/terragrunt/terraform/modules/cluster`, which loads the provider out of a local filesystem mirror, which starts the phases in a process the test does not control.
 
 That layer is what has no coverage anywhere else. The [phase suite](e2e-phase-tests.md) calls the phases in-process, and the provider's unit tests use a fake converger, so everything between a configuration and the phases is untested by both: schema decoding, the map-keyed `hosts` set, the computed attributes a plan has to be able to promise, state, the `state = "absent"` removal, and a destroy.

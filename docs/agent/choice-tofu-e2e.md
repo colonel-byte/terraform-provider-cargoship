@@ -1,5 +1,7 @@
 # How the OpenTofu provider is tested end to end
 
+> **Where this was written.** The suite this records has not moved yet: it depends on cargoship's bootloose and microvm fleet harness, which a separate module cannot import. It still lives at `test/e2e/tofu/` in [`colonel-byte/cargoship`](https://github.com/colonel-byte/cargoship), and every path here is relative to that repository.
+
 `test/e2e/tofu/` runs the real `tofu` binary over the shipped module against three machines - bootloose containers by default, local virtual machines when asked. Several of its shapes look like arbitrary choices and are not, and two of its preflight checks look like paranoia until the failure they catch happens to you. This records both, plus what the suite has actually proven and what it found while proving it.
 
 ## Why the real CLI rather than `terraform-plugin-testing`
