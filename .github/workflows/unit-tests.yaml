@@ -25,12 +25,17 @@ jobs:
         with:
           go-version-file: go.mod
 
+      # Everything is vendored, so make any accidental network access fail fast rather than
+      # succeed quietly. A build that needs the proxy is a build an air-gapped management
+      # node cannot reproduce, and GOPROXY=off is what turns that into a red job here.
       - name: Build
         run: go build ./...
-        env:
+        env: &vendored
+          GOFLAGS: -mod=vendor
+          GOPROXY: "off"
+          GOSUMDB: "off"
           GOTOOLCHAIN: local
 
       - name: Run unit tests
         run: go test ./...
-        env:
-          GOTOOLCHAIN: local
+        env: *vendored
