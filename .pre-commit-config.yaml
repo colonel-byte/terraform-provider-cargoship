@@ -1,0 +1,51 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        exclude: vendor/.*
+        args:
+          - "--maxkb=1024"
+      - id: check-merge-conflict
+      - id: detect-aws-credentials
+        exclude: vendor/.*
+        args:
+          - "--allow-missing-credentials"
+      - id: fix-byte-order-marker
+        exclude: vendor/.*
+      - id: end-of-file-fixer
+        exclude: vendor/.*
+      - id: trailing-whitespace
+        args:
+          - --markdown-linebreak-ext=md
+        exclude: vendor/.*
+  - repo: https://github.com/sirosen/texthooks
+    rev: 1.0.0
+    hooks:
+      - id: fix-smartquotes
+        exclude: vendor/.*
+  - repo: https://github.com/google/addlicense
+    rev: v1.2.0
+    hooks:
+      - id: addlicense
+        exclude: vendor/.*
+        exclude_types:
+          - yaml
+          - markdown
+        args:
+          - -c
+          - colonel-byte
+          - -l
+          - apache
+          - -y
+          - "2026"
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v2.15.0
+    hooks:
+      - id: golangci-lint
+        language_version: "1.27.3"
+        exclude: vendor/.*
+      - id: golangci-lint-config-verify
+        language_version: "1.27.3"
+        exclude: vendor/.*

@@ -1,0 +1,25 @@
+version: "2"
+formatters:
+  enable:
+    - goimports
+    - gofmt
+  exclusions:
+    paths:
+      - examples$
+linters:
+  default: none
+  enable:
+    - errcheck
+    - errorlint
+    - govet
+    - ineffassign
+    - nolintlint
+    - revive
+    - sloglint
+    - staticcheck
+    - unused
+    - whitespace
+  settings:
+    staticcheck:
+      checks:
+        - "all"
