@@ -1,0 +1,66 @@
+---
+name: goreleaser
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# Read only at the top so that a job has to ask for what it writes.
+permissions:
+  contents: read
+
+jobs:
+  goreleaser:
+    # contents: write creates the release and uploads the archives.
+    # id-token: write is the OIDC token cosign signs against.
+    permissions:
+      contents: write
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Setup golang
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      # GPG_PRIVATE_KEY is the organisation secret cargoship signs its rpm and deb packages
+      # with. It is reused rather than reissued: the same identity signs both artifacts.
+      #
+      # Unlike cargoship, this imports the key into a keyring instead of writing it to a file.
+      # nfpm takes a path and does its own OpenPGP; goreleaser's `signs` block shells out to
+      # gpg(1), which signs with a key the agent holds.
+      #
+      # A missing key fails the release here rather than warning as it does in cargoship. The
+      # registry protocol rejects a provider whose SHA256SUMS carries no signature, so an
+      # unsigned release is not a degraded release -- it is an unusable one.
+      - name: Import the package signing key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GPG_PRIVATE_KEY}" ]; then
+            echo "GPG_PRIVATE_KEY is unset; the registry will not accept an unsigned release" >&2
+            exit 1
+          fi
+          printf '%s\n' "${GPG_PRIVATE_KEY}" | gpg --batch --import
+          # Fail here rather than inside goreleaser if the key is present but unusable.
+          gpg --batch --list-secret-keys
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          distribution: goreleaser
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}

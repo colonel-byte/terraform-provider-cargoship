@@ -1,0 +1,92 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+# The shape of this file is dictated by the OpenTofu/Terraform provider registry protocol, which
+# is stricter than an ordinary goreleaser release: the binary, the zip and the checksum file all
+# have names the protocol parses, and the checksums must carry a detached GPG signature. See
+# https://opentofu.org/docs/internals/provider-registry-protocol/.
+#
+# Both signing paths are here on purpose. GPG is what a registry listing requires. cosign is what
+# the rest of colonel-byte signs with, and it is what an operator pulling the provider through the
+# ghcr.io OCI mirror can verify without a keyring -- see docs/agent/choice-tofu-provider-layout.md
+# for why the mirror is the primary channel for an air-gapped install.
+version: 2
+
+builds:
+  - id: provider
+    main: .
+    # The protocol parses this name, and the _v prefix on the version is part of it.
+    binary: "{{ .ProjectName }}_v{{ .Version }}"
+    ldflags:
+      - -s
+      - -w
+      - -X main.version={{ .Version }}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: provider
+    ids:
+      - provider
+    formats:
+      - zip
+    # Also parsed by the protocol: {name}_{version}_{os}_{arch}.zip, with no `v` on the version.
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
+  algorithm: sha256
+
+signs:
+  # The registry verifies this one. gpg is given no --local-user: the release workflow imports
+  # exactly one secret key, so the default is that key, and naming a fingerprint here would be a
+  # second pin to keep in step with the secret.
+  - id: checksum-gpg
+    cmd: gpg
+    signature: "${artifact}.sig"
+    args:
+      - "--batch"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+    artifacts: checksum
+  - id: checksum-cosign
+    cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - "sign-blob"
+      - "--key=env://COSIGN_PRIVATE_KEY"
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    stdin: "{{ .Env.COSIGN_PASSWORD }}"
+
+release:
+  github:
+    owner: colonel-byte
+    name: terraform-provider-cargoship
+  name_template: "v{{ .Version }}"
+  # The protocol fetches the manifest from the release by this name.
+  extra_files:
+    - glob: terraform-registry-manifest.json
+      name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"
+
+changelog:
+  # release-please owns CHANGELOG.md; a second generated changelog on the release body would
+  # disagree with it.
+  disable: true
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot"
