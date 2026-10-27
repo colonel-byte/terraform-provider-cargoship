@@ -13,6 +13,10 @@ coverage.out
 # Added for goreleaser:
 /dist/
 
+# Build output: the filesystem_mirror hack/dev-mirror.sh writes and the fleet state and package
+# cache the e2e suite fills. Anchored, so it matches only the directory at the repository root.
+/build/
+
 # Added for go mod vendor. The tree is committed, as it is in colonel-byte/cargoship: a build
 # has to work with no module proxy reachable. Vendoring lands in its own change -- it is a large
 # diff and nothing else should be reviewed underneath it -- and it waits for the `replace`
