@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.0](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.1.1...v0.2.0) (2026-10-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update to cargoship v0.36.0 ([#14](https://github.com/colonel-byte/terraform-provider-cargoship/issues/14))
+
+### Miscellaneous
+
+* **deps:** update to cargoship v0.36.0 ([#14](https://github.com/colonel-byte/terraform-provider-cargoship/issues/14)) ([49facdf](https://github.com/colonel-byte/terraform-provider-cargoship/commit/49facdf0b1aaab35eb656dc7b75af6480cae3639))
+
+
+### CI/CD
+
+* add dependabot config and config validation workflow ([#11](https://github.com/colonel-byte/terraform-provider-cargoship/issues/11)) ([cd1655b](https://github.com/colonel-byte/terraform-provider-cargoship/commit/cd1655b7535a516477b86b0aedbbeb3dea1b41d3))
+* run the pr title check on pull requests only ([#13](https://github.com/colonel-byte/terraform-provider-cargoship/issues/13)) ([ae1bf77](https://github.com/colonel-byte/terraform-provider-cargoship/commit/ae1bf7783fa383acced44c2fd30ab593530d2efb))
+
 ## [0.1.1](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.1.0...v0.1.1) (2026-10-26)
 
 
