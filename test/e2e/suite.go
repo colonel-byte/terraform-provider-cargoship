@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tofu drives the OpenTofu provider against a real cluster.
+// Package e2e drives the OpenTofu provider against a real cluster.
 //
 // The other cluster suite walks the phases from inside the process. This one does not call
 // cargoship at all: it runs the `tofu` binary over the module in examples/terragrunt, which

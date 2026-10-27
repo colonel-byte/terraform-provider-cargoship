@@ -176,7 +176,7 @@ const networkProbePort = "19347"
 // traffic between containers even with inter-container communication enabled on the bridge, and a
 // user-defined network does not escape it.
 func requireContainerNetworking() error {
-	_ = exec.Command("docker", "rm", "-f", networkProbeName).Run() //nolint:errcheck // absent is the normal case
+	_ = exec.Command("docker", "rm", "-f", networkProbeName).Run() // absent is the normal case
 
 	listen := fmt.Sprintf("nc -l -p %s -e echo %s", networkProbePort, networkProbeToken)
 	if out, err := exec.Command("docker", "run", "-d", "--rm", "--name", networkProbeName, //nolint:gosec
@@ -185,7 +185,7 @@ func requireContainerNetworking() error {
 		return fmt.Errorf("starting the container networking probe: %w: %s", err, out)
 	}
 	defer func() {
-		_ = exec.Command("docker", "rm", "-f", networkProbeName).Run() //nolint:errcheck // best-effort cleanup
+		_ = exec.Command("docker", "rm", "-f", networkProbeName).Run() // best-effort cleanup
 	}()
 
 	address, err := exec.Command("docker", "inspect", networkProbeName, //nolint:gosec
