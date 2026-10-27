@@ -145,8 +145,8 @@ github.com/cloudflare/circl v1.6.5 h1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQ
 github.com/cloudflare/circl v1.6.5/go.mod h1:h5LNyxAc5nTue9DS5jT+48en2PSDYt3zdGnz5OstK6c=
 github.com/codahale/rfc6979 v0.0.0-20141003034818-6a90f24967eb h1:EDmT6Q9Zs+SbUoc7Ik9EfrFqcylYqgPZ9ANSbTAntnE=
 github.com/codahale/rfc6979 v0.0.0-20141003034818-6a90f24967eb/go.mod h1:ZjrT6AXHbDs86ZSdt/osfBi5qfexBrKUdONk989Wnk4=
-github.com/colonel-byte/cargoship v0.35.1-0.20261026225128-e38835cb2c57 h1:9ff6a5G3WuGHtwowyLo8w+2I7c7UdQYOzGF7Q5pkIVI=
-github.com/colonel-byte/cargoship v0.35.1-0.20261026225128-e38835cb2c57/go.mod h1:QDVmn+IJXe51jsPb7HQkbUeI5J1EP2PXih14p7PDoa0=
+github.com/colonel-byte/cargoship v0.35.1-0.20261026233527-24daaa14cfca h1:tCztQvIGMUXzSh2zvk6FEQAq6uU/cwYX+Fsycp7u9Dw=
+github.com/colonel-byte/cargoship v0.35.1-0.20261026233527-24daaa14cfca/go.mod h1:QDVmn+IJXe51jsPb7HQkbUeI5J1EP2PXih14p7PDoa0=
 github.com/containerd/console v1.0.5 h1:R0ymNeydRqH2DmakFNdmjR2k0t7UPuiOV/N/27/qqsc=
 github.com/containerd/console v1.0.5/go.mod h1:YynlIjWYF8myEu6sdkwKIvGQq+cOckRm6So2avqoYAk=
 github.com/containerd/log v0.2.0 h1:BewD/umNgVnoczglOpX8eRMyEy5t5iPlu5AIpnWDONc=
