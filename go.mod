@@ -3,7 +3,7 @@ module github.com/colonel-byte/terraform-provider-cargoship
 go 1.27.3
 
 require (
-	github.com/colonel-byte/cargoship v0.35.1-0.20261026233527-24daaa14cfca
+	github.com/colonel-byte/cargoship v0.36.0
 	github.com/goccy/go-yaml v1.19.2
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
 	github.com/hashicorp/terraform-plugin-go v0.31.0
