@@ -1,0 +1,55 @@
+---
+# shortcut: no commit-message prefix, so PR titles rely on Dependabot auto-detecting the
+# conventional-commit convention; set `prefix: build(deps)` if a title ever fails PR Title Check.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    groups:
+      k8s:
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+      opentelemetry:
+        patterns:
+          - "go.opentelemetry.io/*"
+      sigstore:
+        patterns:
+          - "github.com/sigstore/*"
+      golang:
+        patterns:
+          - "golang.org/x/*"
+      docker:
+        patterns:
+          - "github.com/docker/*"
+          - "github.com/moby/*"
+          - "github.com/containerd/*"
+      cloud-kms:
+        patterns:
+          - "github.com/Azure/*"
+      openapi:
+        patterns:
+          - "github.com/go-openapi/*"
+  - package-ecosystem: pre-commit
+    directory: "/"
+    schedule:
+      interval: daily
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+    groups:
+      core:
+        patterns:
+          - "*"
+  - package-ecosystem: npm
+    directory: "/.github/commitlint"
+    schedule:
+      interval: weekly
+    groups:
+      commitlint:
+        patterns:
+          - "*"
