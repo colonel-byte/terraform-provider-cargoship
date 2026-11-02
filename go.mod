@@ -11,7 +11,7 @@ require (
 	github.com/k0sproject/bootloose v0.9.6
 	github.com/k0sproject/rig/v2 v2.2.1
 	github.com/stretchr/testify v1.12.1
-	github.com/zarf-dev/zarf v0.88.0
+	github.com/zarf-dev/zarf v0.89.0
 )
 
 require (
@@ -105,6 +105,7 @@ require (
 	github.com/google/certificate-transparency-go v1.4.0 // indirect
 	github.com/google/go-containerregistry v0.22.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.23 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.32.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
@@ -204,6 +205,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.47.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.47.0 // indirect
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
