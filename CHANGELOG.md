@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.3.0...v0.4.0) (2026-11-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update cargoship to v0.38.0 ([#19](https://github.com/colonel-byte/terraform-provider-cargoship/issues/19))
+
+### Miscellaneous
+
+* **deps:** update cargoship to v0.38.0 ([#19](https://github.com/colonel-byte/terraform-provider-cargoship/issues/19)) ([92e1a31](https://github.com/colonel-byte/terraform-provider-cargoship/commit/92e1a3115dc7a518cb6b700306f7c61fd0dc9df8))
+
 ## [0.3.0](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.2.0...v0.3.0) (2026-11-04)
 
 
