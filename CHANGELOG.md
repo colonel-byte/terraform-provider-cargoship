@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.2.0...v0.3.0) (2026-11-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* add code owners file ([#18](https://github.com/colonel-byte/terraform-provider-cargoship/issues/18))
+
+### CI/CD
+
+* add code owners file ([#18](https://github.com/colonel-byte/terraform-provider-cargoship/issues/18)) ([be04cd6](https://github.com/colonel-byte/terraform-provider-cargoship/commit/be04cd6d5aa562741ee44a27f3edb5d9ff8c8a5d))
+
+
+### Build
+
+* **deps:** Bump github.com/colonel-byte/cargoship from 0.36.0 to 0.37.0 ([#16](https://github.com/colonel-byte/terraform-provider-cargoship/issues/16)) ([95cda86](https://github.com/colonel-byte/terraform-provider-cargoship/commit/95cda86815be70c8c6351f2985556e40e5f70ed7))
+* **deps:** Bump github.com/zarf-dev/zarf from 0.88.0 to 0.89.0 ([#15](https://github.com/colonel-byte/terraform-provider-cargoship/issues/15)) ([c2ad711](https://github.com/colonel-byte/terraform-provider-cargoship/commit/c2ad7110b176ba5eee68f0dbc2e4ae47cd2959c3))
+
 ## [0.2.0](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.1.1...v0.2.0) (2026-10-27)
 
 
