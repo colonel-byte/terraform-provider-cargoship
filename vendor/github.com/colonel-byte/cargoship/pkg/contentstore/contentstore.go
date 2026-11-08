@@ -106,6 +106,42 @@ func CanonicalImageRef(ref string) string {
 	return parsed.Name()
 }
 
+// CanonicalFileRef puts a file source into the one spelling a bundle and a definition share.
+//
+// A bundle records what it collected from, and for an artifact pulled out of a registry that
+// is a bare reference: hauler writes `registry.example.com/vendor/engine:v1.37.1` into
+// `hauler.dev/original-ref`, with no scheme, because that is what a registry client was given.
+// A distro definition has to write `oci://` in front of the same string, since `source` also
+// takes URLs and paths and the scheme is what tells them apart.
+//
+// So the two spellings of one artifact differ by exactly the prefix, and a file staged from a
+// store would otherwise never be found. Everything that is not an OCI reference is returned
+// unchanged: a URL keeps its scheme, because that is part of what a bundle recorded.
+func CanonicalFileRef(src string) string {
+	return strings.TrimPrefix(src, ociURLPrefix)
+}
+
+// ociURLPrefix is the scheme a distro definition marks an OCI reference with.
+const ociURLPrefix = "oci://"
+
+// FileRequest is what a distro definition's file entry asks a content bundle for. It is a
+// struct rather than a reference string because one reference is not always enough to name
+// the bytes: a vendor-published file artifact is commonly an image index over one manifest
+// per platform, and the entry's own selector is the only thing that says which to take.
+type FileRequest struct {
+	// Source is the source the definition declared, which is the string a bundle recorded as
+	// the content's original reference.
+	Source string
+	// Arch is the single architecture the entry's selector names, and is empty when the entry
+	// names none or several. A bundle holding one platform of a file answers without it; a
+	// bundle holding several cannot, and refuses rather than choosing.
+	Arch string
+	// Layer is the layer title the entry names, and is empty when it names none. A file
+	// artifact that carries every file in a release as its own titled layer needs it; one
+	// carrying a single layer does not.
+	Layer string
+}
+
 // Unpack makes the content bundle at path readable as a directory, returning the directory to
 // read and the temporary directory the caller must remove when it is done -- which is empty
 // when path was already a directory, because an operator's own store is never written to or
