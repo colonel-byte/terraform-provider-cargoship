@@ -235,11 +235,11 @@ func (p *Package) loadFiles(ctx context.Context, definition zarfapi.Package) {
 				continue
 			}
 			name := path.Base(filepath.ToSlash(f.Destination))
-			if previous, duplicated := p.files[f.Source]; duplicated {
+			if previous, duplicated := p.files[contentstore.CanonicalFileRef(f.Source)]; duplicated {
 				l.Debug("zarf package declares one source in more than one component; using the last",
 					"package", p.source, "declared", f.Source, "previous", previous.member)
 			}
-			p.files[f.Source] = file{
+			p.files[contentstore.CanonicalFileRef(f.Source)] = file{
 				// The path zarf gives a component file inside its tarball:
 				// <component>/files/<index>/<basename of destination>.
 				member:  path.Join(component.Name, filesDir, strconv.Itoa(idx), name),
@@ -299,11 +299,17 @@ func (p *Package) HasImage(ref string) bool {
 	return ok
 }
 
-// File reports whether the package holds a component file declared as coming from src -- a URL
-// or a path as it appeared in a distro definition -- and the name it is restored under.
-func (p *Package) File(src string) (string, bool) {
-	f, ok := p.files[src]
-	return f.name, ok
+// File reports whether the package holds a component file declared as coming from req.Source --
+// a URL or a path as it appeared in a distro definition -- and the name it is restored under.
+//
+// req.Arch is ignored, and the error is always nil. A zarf package's components[].files has no
+// platform dimension: one entry is one file, and a package that carries two architectures of
+// something carries them as two entries. Only a bundle that can hold several platforms under
+// one reference -- a hauler store holding a vendor-published index -- has anything to answer
+// here.
+func (p *Package) File(req contentstore.FileRequest) (string, bool, error) {
+	f, ok := p.files[contentstore.CanonicalFileRef(req.Source)]
+	return f.name, ok, nil
 }
 
 // Source is the path the package was opened from, for messages and provenance.
@@ -316,8 +322,9 @@ func (p *Package) Describe() string {
 	return "zarf package " + p.source
 }
 
-// Fetch writes the component file declared as coming from src to dst, creating it.
-func (p *Package) Fetch(ctx context.Context, src, dst string) (err error) {
+// Fetch writes the component file declared as coming from req.Source to dst, creating it.
+func (p *Package) Fetch(ctx context.Context, req contentstore.FileRequest, dst string) (err error) {
+	src := contentstore.CanonicalFileRef(req.Source)
 	f, ok := p.files[src]
 	if !ok {
 		return fmt.Errorf("%s does not hold the file %s", p.source, src)

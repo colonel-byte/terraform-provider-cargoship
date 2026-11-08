@@ -40,6 +40,8 @@ import (
 	"github.com/colonel-byte/cargoship/api/colonel-byte.dev/v1alpha1"
 	"github.com/colonel-byte/cargoship/api/colonel-byte.dev/v1alpha1/distro"
 	"github.com/colonel-byte/cargoship/config"
+	"github.com/colonel-byte/cargoship/pkg/coci"
+	"github.com/colonel-byte/cargoship/pkg/contentstore"
 	"github.com/colonel-byte/cargoship/pkg/engineconfig/extract"
 	"github.com/colonel-byte/cargoship/pkg/engineconfig/gen"
 	"github.com/colonel-byte/cargoship/pkg/fileoverride"
@@ -52,7 +54,6 @@ import (
 	goyaml "github.com/goccy/go-yaml"
 	"github.com/k0sproject/dig"
 	zlang "github.com/zarf-dev/zarf/src/config/lang"
-	"github.com/zarf-dev/zarf/src/pkg/archive"
 	"github.com/zarf-dev/zarf/src/pkg/logger"
 	"github.com/zarf-dev/zarf/src/pkg/transform"
 	"github.com/zarf-dev/zarf/src/pkg/value"
@@ -213,21 +214,30 @@ func AssembleDistro(ctx context.Context, d distro.Distro, distroPath string, opt
 	// definition order. Appending in a fixed order is what keeps --reproducible reproducible.
 	var fileSources []distro.FileSource
 
+	// Built across both lists before anything is staged, so that an archive several entries
+	// take members out of is fetched and decompressed once rather than once per entry.
+	extractor := newArchiveExtractor(buildPath, d.Spec.Config.Files, d.Spec.Config.OS.Files)
+	defer func() {
+		err = errors.Join(err, extractor.cleanup())
+	}()
+
 	for filesIdx, file := range d.Spec.Config.Files {
-		provenance, err := fileGrabber(ctx, string(config.FilesDir), buildPath, distroPath, filesIdx, *file, opts.FileOverrides, opts.ContentStore)
+		provenance, err := fileGrabber(ctx, string(config.FilesDir), buildPath, distroPath, filesIdx, *file, opts.FileOverrides, opts.ContentStore, opts.ociOptions(), extractor)
 		if err != nil {
 			return nil, fmt.Errorf("unable to stage file %d (%s): %w", filesIdx, file, err)
 		}
 		if provenance != nil {
+			pinOCISource(file, *provenance)
 			fileSources = append(fileSources, *provenance)
 		}
 	}
 	for filesIdx, file := range d.Spec.Config.OS.Files {
-		provenance, err := fileGrabber(ctx, string(config.OSDir), buildPath, distroPath, filesIdx, *file, opts.FileOverrides, opts.ContentStore)
+		provenance, err := fileGrabber(ctx, string(config.OSDir), buildPath, distroPath, filesIdx, *file, opts.FileOverrides, opts.ContentStore, opts.ociOptions(), extractor)
 		if err != nil {
 			return nil, fmt.Errorf("unable to stage os file %d (%s): %w", filesIdx, file, err)
 		}
 		if provenance != nil {
+			pinOCISource(file, *provenance)
 			fileSources = append(fileSources, *provenance)
 		}
 	}
@@ -400,13 +410,35 @@ func checkMappings(ctx context.Context, d distro.Distro, values map[string]any) 
 	}
 }
 
+// fileArch returns the one architecture a file entry selects, or "" when it selects none or
+// several.
+//
+// A file is staged arch-blind -- fileGrabber keys its output on the entry's index in the list,
+// and selector.arch is not read again until install time -- so this is the only thing that
+// tells a build which platform of a multi-platform source an entry meant. A resolver that
+// needs a platform and gets "" refuses rather than guessing; see issue #1033.
+func fileArch(file v1alpha1.File) string {
+	if len(file.Selector.Arch) != 1 {
+		return ""
+	}
+	return string(file.Selector.Arch[0])
+}
+
 // fileGrabber stages one file into buildPath. The returned FileSource is non-nil only when the
 // bytes came from somewhere other than the declared source -- an override, or a content store --
 // so the caller records what actually happened rather than only what was configured.
-func fileGrabber(ctx context.Context, resourceType string, buildPath string, distroPath string, filesIdx int, file v1alpha1.File, overrides []fileoverride.Override, store ContentStore) (provenance *distro.FileSource, err error) {
+func fileGrabber(ctx context.Context, resourceType string, buildPath string, distroPath string, filesIdx int, file v1alpha1.File, overrides []fileoverride.Override, store ContentStore, ociOpts ociOptions, extractor *archiveExtractor) (provenance *distro.FileSource, err error) {
+	if extractor == nil {
+		// A caller staging one file on its own -- which is every test, and nothing in a real
+		// build -- gets an extractor that plans for just this entry.
+		extractor = newArchiveExtractor(filepath.Dir(buildPath), []*v1alpha1.File{&file})
+		defer func() {
+			err = errors.Join(err, extractor.cleanup())
+		}()
+	}
+
 	rel := filepath.Join(resourceType, strconv.Itoa(filesIdx), filepath.Base(file.Target))
 	dst := filepath.Join(buildPath, rel)
-	destinationDir := filepath.Dir(dst)
 
 	// Leave nothing half-written behind. buildPath is walked later to generate the package
 	// checksums, so a file left by a failed download, a failed extraction, or a mismatched
@@ -451,7 +483,11 @@ func fileGrabber(ctx context.Context, resourceType string, buildPath string, dis
 	// over it. What the store yields is a local file, so the staging below hands off to the
 	// local-source branch and reuses its extraction, verification and permissions unchanged.
 	if !overridden && store != nil {
-		name, held := store.File(file.Source)
+		req := contentstore.FileRequest{Source: file.Source, Arch: fileArch(file), Layer: file.Layer}
+		name, held, err := store.File(req)
+		if err != nil {
+			return nil, err
+		}
 		switch {
 		case held:
 			// Store content is bytes whoever wrote the distro definition never saw, exactly
@@ -469,7 +505,7 @@ func fileGrabber(ctx context.Context, resourceType string, buildPath string, dis
 				err = errors.Join(err, os.RemoveAll(staged))
 			}()
 			source = filepath.Join(staged, name)
-			if err := store.Fetch(ctx, file.Source, source); err != nil {
+			if err := store.Fetch(ctx, req, source); err != nil {
 				return nil, err
 			}
 			logger.From(ctx).Info("file read from content store",
@@ -489,67 +525,96 @@ func fileGrabber(ctx context.Context, resourceType string, buildPath string, dis
 		}
 	}
 
-	if helpers.IsURL(source) {
-		if file.ExtractPath != "" {
-			// The temp name is local bookkeeping, so it comes from the declared source: a
-			// mirror is free to serve the same artifact under a different path, and the
-			// name the definition used is the more recognizable of the two in a log line.
-			compressedFileName, err := helpers.ExtractBasePathFromURL(file.Source)
-			if err != nil {
-				return nil, fmt.Errorf(zlang.ErrFileNameExtract, file.Source, err)
+	// A registry override applies to an oci:// source for the same reason it applies to an
+	// image pull: an operator who redirects a registry means it for everything cargoship
+	// fetches from there. It is resolved here rather than in the fetch so that the refusal
+	// and the provenance record sit beside the ones --file-override writes.
+	//
+	// Note that --file-override itself never matches an oci:// source: pkg/fileoverride
+	// parses http and https only.
+	if helpers.IsOCIURL(source) && provenance == nil {
+		// Matched on the reference without its scheme, because an override's source is a
+		// registry prefix as an image list spells one -- "registry.example.com", with no
+		// oci:// in front of it.
+		rewritten, match, ok := images.ApplyOverride(strings.TrimPrefix(source, helpers.OCIURLPrefix), ociOpts.RegistryOverrides)
+		if ok {
+			rewritten = helpers.OCIURLPrefix + rewritten
+			// Overridden bytes come from a registry the definition's author never named,
+			// so something has to tie them to what upstream published. A digest in the
+			// reference does that by itself; otherwise the declared shasum is the only
+			// thing left, and without it the override is an unauthenticated substitution.
+			if file.Shasum == "" && !pinnedByDigest(source) {
+				return nil, fmt.Errorf("registry override %s=%s applies to %s, which declares no shasum and is not pinned by digest: refusing to fetch it unverified",
+					match.Source, match.Override, file.Source)
 			}
-
-			// One archive commonly supplies several files -- every rke2 binary, script and
-			// unit file is extracted from the same tarball -- and the same archive is wanted
-			// again by the next build. Both are served by the shared cache, which is keyed on
-			// the URL because an archive carrying an extractPath file declares no digest of
-			// its own; see utils.CachedArchive for why that is safe here.
-			compressedFile, err := utils.CachedArchive(ctx, source, compressedFileName)
-			if err != nil {
-				return nil, fmt.Errorf(zlang.ErrDownloading, source, err)
-			}
-
-			decompressOpts := archive.DecompressOpts{
-				Files: []string{file.ExtractPath},
-			}
-			err = archive.Decompress(ctx, compressedFile, destinationDir, decompressOpts)
-			if err != nil {
-				return nil, fmt.Errorf(zlang.ErrFileExtract, file.ExtractPath, compressedFileName, err)
-			}
-		} else {
-			if err := utils.DownloadToFileWithChecksum(ctx, source, dst, file.Shasum, filepath.Base(file.Target)); err != nil {
-				return nil, fmt.Errorf(zlang.ErrDownloading, source, err)
-			}
-		}
-	} else {
-		// A resolved local override is already absolute, so it is never re-resolved against
-		// the distro definition directory here.
-		src := source
-		if !filepath.IsAbs(source) {
-			src = filepath.Join(distroPath, source)
-		}
-		if file.ExtractPath != "" {
-			decompressOpts := archive.DecompressOpts{
-				Files: []string{file.ExtractPath},
-			}
-			err := archive.Decompress(ctx, src, destinationDir, decompressOpts)
-			if err != nil {
-				return nil, fmt.Errorf(zlang.ErrFileExtract, file.ExtractPath, src, err)
-			}
-		} else {
-			if err := helpers.CreatePathAndCopy(src, dst); err != nil {
-				return nil, fmt.Errorf("unable to copy file %s: %w", src, err)
+			logger.From(ctx).Info("file source overridden",
+				"declared", file.Source, "resolved", rewritten, "override", match.Source)
+			source = rewritten
+			provenance = &distro.FileSource{
+				Path:     filepath.ToSlash(rel),
+				Declared: file.Source,
+				Resolved: rewritten,
+				Override: match.Source,
+				Shasum:   file.Shasum,
 			}
 		}
 	}
 
-	if file.ExtractPath != "" {
-		// Make sure dst reflects the actual file or directory.
-		updatedExtractedFileOrDir := filepath.Join(destinationDir, file.ExtractPath)
-		if updatedExtractedFileOrDir != dst {
-			if err := os.Rename(updatedExtractedFileOrDir, dst); err != nil {
-				return nil, fmt.Errorf(zlang.ErrWritingFile, dst, err)
+	// An oci:// source is resolved before anything is fetched, and the fetch then names the
+	// digest rather than the tag. That removes the window in which a tag re-pushed between
+	// the two would swap the bytes, and it is what lets the build record -- and pin -- the
+	// artifact it actually read.
+	if helpers.IsOCIURL(source) {
+		resolution, err := coci.Resolve(ctx, source, coci.FileSelector{
+			Arch:  fileArch(file),
+			Layer: file.Layer,
+		}, ociOpts.FileOptions)
+		if err != nil {
+			return nil, ociFieldHint(err)
+		}
+		source = resolution.Reference
+		if provenance == nil {
+			provenance = &distro.FileSource{
+				Path:     filepath.ToSlash(rel),
+				Declared: file.Source,
+				Shasum:   file.Shasum,
 			}
+		}
+		provenance.Resolved = resolution.Reference
+		provenance.ManifestDigest = resolution.ManifestDigest
+		provenance.LayerDigest = resolution.LayerDigest
+	}
+
+	// An entry with an extractPath takes one member out of an archive that several entries
+	// usually share, so the archive is fetched and walked once by the extractor and every
+	// member is copied out of what that produced. An entry without one is staged straight to
+	// dst, which is what the three arms below differ on.
+	if file.ExtractPath != "" {
+		member, err := extractor.member(ctx, keyFor(file), file.ExtractPath,
+			newArchiveSource(source, file, distroPath, ociOpts))
+		if err != nil {
+			return nil, err
+		}
+		// Copied rather than renamed, because a second entry wants the same member staged
+		// under its own target name. Copying into dst also means the extraction's own
+		// directories never occupy dst, which renaming into place used to collide with: an
+		// extractPath whose leading segment matches the target's base name -- zarf's
+		// "zarf-injector/files/0/zarf-injector" for a target named zarf-injector -- produced
+		// a "file exists" naming a path the definition never mentions.
+		if err := helpers.CreatePathAndCopy(member, dst); err != nil {
+			return nil, fmt.Errorf(zlang.ErrWritingFile, dst, err)
+		}
+	} else if helpers.IsOCIURL(source) {
+		if err := fetchOCIFile(ctx, source, file, fileArch(file), dst, ociOpts); err != nil {
+			return nil, err
+		}
+	} else if helpers.IsURL(source) {
+		if err := utils.DownloadToFileWithChecksum(ctx, source, dst, file.Shasum, filepath.Base(file.Target)); err != nil {
+			return nil, fmt.Errorf(zlang.ErrDownloading, source, err)
+		}
+	} else {
+		if err := helpers.CreatePathAndCopy(localSource(source, distroPath), dst); err != nil {
+			return nil, fmt.Errorf("unable to copy file %s: %w", source, err)
 		}
 	}
 
@@ -666,11 +731,12 @@ func getChecksum(dirPath string) (string, string, error) {
 // and would send every lookup to a bundle that is not there. See openContentStore in pkg/distro.
 type ContentStore interface {
 	images.ImageSource
-	// File reports whether the bundle holds the file the definition named as src, and the
-	// name it is restored under.
-	File(src string) (name string, ok bool)
+	// File reports whether the bundle holds the file the definition's entry asks for, and
+	// the name it is restored under. It errors when the bundle holds the reference for
+	// several architectures and the request names none -- see contentstore.FileRequest.
+	File(req contentstore.FileRequest) (name string, ok bool, err error)
 	// Fetch writes that file to dst.
-	Fetch(ctx context.Context, src, dst string) error
+	Fetch(ctx context.Context, req contentstore.FileRequest, dst string) error
 	// Source names the bundle as the operator spelled it, for messages and provenance.
 	Source() string
 }
