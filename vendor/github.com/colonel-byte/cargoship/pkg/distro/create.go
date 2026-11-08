@@ -25,13 +25,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+
+	"github.com/colonel-byte/cargoship/pkg/contentstore"
 	"github.com/colonel-byte/cargoship/pkg/fileoverride"
 	"github.com/colonel-byte/cargoship/pkg/haulerstore"
 	"github.com/colonel-byte/cargoship/pkg/images"
 	"github.com/colonel-byte/cargoship/pkg/packager/assemble"
 	"github.com/colonel-byte/cargoship/pkg/packager/layout"
 	"github.com/colonel-byte/cargoship/pkg/packager/load"
+	"github.com/colonel-byte/cargoship/pkg/zarfpackage"
 	"github.com/zarf-dev/zarf/src/pkg/logger"
 	"github.com/zarf-dev/zarf/src/types"
 )
@@ -52,9 +58,10 @@ type CreateOptions struct {
 	// FileOverrides redirect the file downloads a distro definition declares to an internal
 	// mirror or to a directory of pre-staged assets.
 	FileOverrides []fileoverride.Override
-	// HaulerStore is the path to a hauler store directory or archive that images and files
-	// are resolved from before the network. Empty means no store.
-	HaulerStore string
+	// ContentStore is the path to a local content bundle that images and files are resolved
+	// from before the network: a hauler store directory or archive, or a built zarf package.
+	// The format is read from the bundle, not from the path. Empty means no store.
+	ContentStore string
 	// SigningKeyPath and SigningKeyPassword sign the package as part of creation
 	// when set. Empty values are a no-op -- see DistroLayout.SignPackage.
 	SigningKeyPath     string
@@ -64,8 +71,17 @@ type CreateOptions struct {
 	types.RemoteOptions
 }
 
-// Create used to create a distro package
-func Create(ctx context.Context, distroPath string, output string, opts CreateOptions) (string, error) {
+// Build assembles a distro package and returns its layout without archiving it.
+//
+// It is the half of Create that produces the package; Create is Build plus the archive step.
+// Splitting them is what lets a caller about to consume the package in this same process --
+// `cargoship dev apply` -- skip compressing a multi-gigabyte layout and decompressing the
+// same bytes straight back again.
+//
+// The caller owns the returned layout and must Cleanup it. That is the one thing to get right
+// when reaching for this rather than Create, which cleans up the layout itself because the
+// archive is the only thing meant to outlive it.
+func Build(ctx context.Context, distroPath string, opts CreateOptions) (*layout.DistroLayout, error) {
 	loadOpts := load.DefinitionOptions{
 		CachePath:     opts.CachePath,
 		Architecture:  opts.Architecture,
@@ -73,7 +89,7 @@ func Create(ctx context.Context, distroPath string, output string, opts CreateOp
 	}
 	distro, err := load.DistroDefinition(ctx, distroPath, loadOpts)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if opts.Tag != "" {
 		distro.Metadata.Version = opts.Tag
@@ -81,26 +97,29 @@ func Create(ctx context.Context, distroPath string, output string, opts CreateOp
 
 	disPath, err := layout.ResolveDistroPath(distroPath)
 	if err != nil {
-		return "", fmt.Errorf("unable to access package path %q: %w", distroPath, err)
+		return nil, fmt.Errorf("unable to access package path %q: %w", distroPath, err)
 	}
 
 	// The store is opened once for the whole build and closed with it, because opening an
 	// archive unpacks it and every file and image staged below reads from that one copy.
-	var store *haulerstore.Store
-	if opts.HaulerStore != "" {
-		store, err = haulerstore.Open(ctx, opts.HaulerStore)
+	var store assemble.ContentStore
+	if opts.ContentStore != "" {
+		opened, closeStore, err := openContentStore(ctx, opts.ContentStore)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		// Create's results are unnamed, so a deferred assignment to err would be discarded.
-		// Close only removes the directory an archive was unpacked into, so a failure is
-		// reported rather than returned.
+		store = opened
+		// Build's results are unnamed, so a deferred assignment to err would be discarded.
+		// Closing only removes the directory an archive was unpacked into, so a failure is
+		// reported rather than returned. Closing when Build returns rather than when Create
+		// does is safe: everything the store held has already been staged into the layout by
+		// the time AssembleDistro returns, and the archive step never reads it.
 		defer func() {
-			if cerr := store.Close(); cerr != nil {
-				logger.From(ctx).Warn("failed to remove the unpacked hauler store", "error", cerr)
+			if cerr := closeStore(); cerr != nil {
+				logger.From(ctx).Warn("failed to remove the unpacked content store", "error", cerr)
 			}
 		}()
-		logger.From(ctx).Info("resolving package content from a hauler store", "store", opts.HaulerStore)
+		logger.From(ctx).Info("resolving package content from a local content store", "store", store.Describe())
 	}
 
 	assembleOpt := assemble.AssembleOptions{
@@ -110,7 +129,7 @@ func Create(ctx context.Context, distroPath string, output string, opts CreateOp
 		Reproducible:       opts.Reproducible,
 		RegistryOverrides:  opts.RegistryOverrides,
 		FileOverrides:      opts.FileOverrides,
-		HaulerStore:        store,
+		ContentStore:       store,
 		SigningKeyPath:     opts.SigningKeyPath,
 		SigningKeyPassword: opts.SigningKeyPassword,
 		// Don't have sbom logic yet....
@@ -118,7 +137,13 @@ func Create(ctx context.Context, distroPath string, output string, opts CreateOp
 	}
 
 	logger.From(ctx).Debug("assembling distro", "baseDir", disPath.BaseDir)
-	distroLayout, err := assemble.AssembleDistro(ctx, distro, disPath.BaseDir, assembleOpt)
+	return assemble.AssembleDistro(ctx, distro, disPath.BaseDir, assembleOpt)
+}
+
+// Create builds a distro package, writes it to output as an archive, and returns the path to
+// that archive.
+func Create(ctx context.Context, distroPath string, output string, opts CreateOptions) (_ string, err error) {
+	distroLayout, err := Build(ctx, distroPath, opts)
 	if err != nil {
 		return "", err
 	}
@@ -127,4 +152,63 @@ func Create(ctx context.Context, distroPath string, output string, opts CreateOp
 	}()
 
 	return distroLayout.Archive(ctx, output, 0)
+}
+
+// Compile-time proof that both readers satisfy the one interface a build resolves content
+// against. This is the only place that matters: pkg/packager/assemble declares the interface and
+// imports neither reader, and pkg/images knows about neither.
+var (
+	_ assemble.ContentStore = (*haulerstore.Store)(nil)
+	_ assemble.ContentStore = (*zarfpackage.Package)(nil)
+)
+
+// openContentStore unpacks the content bundle at path once and hands the unpacked tree to the
+// reader whose layout it matches, returning a function that removes anything the unpack created.
+//
+// The format is decided by what the bundle holds rather than by what it is called: a zarf package
+// is named by convention, not by rule, and an operator who renamed one should still get a build
+// rather than a complaint. A single unpack is also the reason the decision is made here instead
+// of inside the readers -- sniffing an archive without unpacking it means a second pass over the
+// whole compressed stream, which on a package carrying a fleet's images is not free.
+func openContentStore(ctx context.Context, path string) (assemble.ContentStore, func() error, error) {
+	dir, tempDir, err := contentstore.Unpack(ctx, path)
+	if err != nil {
+		return nil, nil, err
+	}
+	cleanup := func() error {
+		if tempDir == "" {
+			return nil
+		}
+		return os.RemoveAll(tempDir)
+	}
+
+	// zarf.yaml first: a zarf package also carries an images/index.json, so testing for the
+	// hauler layout first would read every zarf package as a haul with no content.
+	switch {
+	case exists(filepath.Join(dir, zarfDefinition)):
+		store, err := zarfpackage.OpenDir(ctx, dir, path)
+		if err != nil {
+			return nil, nil, errors.Join(err, cleanup())
+		}
+		return store, cleanup, nil
+	case exists(filepath.Join(dir, ocispec.ImageIndexFile)):
+		store, err := haulerstore.OpenDir(ctx, dir, path)
+		if err != nil {
+			return nil, nil, errors.Join(err, cleanup())
+		}
+		return store, cleanup, nil
+	}
+
+	return nil, nil, errors.Join(
+		fmt.Errorf("%s is not a content store cargoship can read: a zarf package has %s at its root, and a hauler store has %s", path, zarfDefinition, ocispec.ImageIndexFile),
+		cleanup(),
+	)
+}
+
+// zarfDefinition is the file whose presence at a bundle's root identifies a zarf package.
+const zarfDefinition = "zarf.yaml"
+
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
