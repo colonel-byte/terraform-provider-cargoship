@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.6.0...v0.6.1) (2026-11-13)
+
+
+### Build
+
+* **deps:** Bump sigstore/cosign-installer from 4.1.2 to 4.1.3 in the core group ([#25](https://github.com/colonel-byte/terraform-provider-cargoship/issues/25)) ([92b0eaf](https://github.com/colonel-byte/terraform-provider-cargoship/commit/92b0eaf6f17cc684250e689f2d57b71e2a4a13bf))
+* **deps:** update zarf to v1.0.0 and cargoship to v0.41.2 ([#27](https://github.com/colonel-byte/terraform-provider-cargoship/issues/27)) ([7aa003a](https://github.com/colonel-byte/terraform-provider-cargoship/commit/7aa003a0e765041fd5ed80431d193f62252f3d88))
+
 ## [0.6.0](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.5.0...v0.6.0) (2026-11-08)
 
 
