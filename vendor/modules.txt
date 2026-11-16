@@ -12,6 +12,8 @@ atomicgo.dev/keyboard/keys
 # atomicgo.dev/schedule v0.1.0
 ## explicit; go 1.18
 atomicgo.dev/schedule
+# cloud.google.com/go/auth/oauth2adapt v0.3.1
+## explicit; go 1.26.0
 # dario.cat/mergo v1.0.2
 ## explicit; go 1.13
 dario.cat/mergo
@@ -1233,8 +1235,8 @@ github.com/xeipuuv/gojsonschema
 # github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 ## explicit; go 1.17
 github.com/youmark/pkcs8
-# github.com/zarf-dev/zarf v1.0.0
-## explicit; go 1.26.10
+# github.com/zarf-dev/zarf v1.0.1
+## explicit; go 1.26.11
 github.com/zarf-dev/zarf/src/api
 github.com/zarf-dev/zarf/src/api/convert
 github.com/zarf-dev/zarf/src/api/v1alpha1
