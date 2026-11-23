@@ -3,7 +3,7 @@ module github.com/colonel-byte/terraform-provider-cargoship
 go 1.27.4
 
 require (
-	github.com/colonel-byte/cargoship v0.42.3
+	github.com/colonel-byte/cargoship v0.43.0
 	github.com/goccy/go-yaml v1.19.2
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
 	github.com/hashicorp/terraform-plugin-go v0.31.0
@@ -181,7 +181,7 @@ require (
 	github.com/sigstore/rekor-tiles/v2 v2.4.2 // indirect
 	github.com/sigstore/sigstore v1.11.3 // indirect
 	github.com/sigstore/sigstore-go v1.4.0 // indirect
-	github.com/sigstore/timestamp-authority/v2 v2.2.0 // indirect
+	github.com/sigstore/timestamp-authority/v2 v2.2.1 // indirect
 	github.com/sirupsen/logrus v1.10.2 // indirect
 	github.com/skeema/knownhosts v1.3.3 // indirect
 	github.com/sorairolake/lzip-go v0.3.8 // indirect

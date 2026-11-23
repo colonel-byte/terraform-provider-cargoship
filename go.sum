@@ -147,8 +147,8 @@ github.com/cloudflare/circl v1.6.5 h1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQ
 github.com/cloudflare/circl v1.6.5/go.mod h1:h5LNyxAc5nTue9DS5jT+48en2PSDYt3zdGnz5OstK6c=
 github.com/codahale/rfc6979 v0.0.0-20141003034818-6a90f24967eb h1:EDmT6Q9Zs+SbUoc7Ik9EfrFqcylYqgPZ9ANSbTAntnE=
 github.com/codahale/rfc6979 v0.0.0-20141003034818-6a90f24967eb/go.mod h1:ZjrT6AXHbDs86ZSdt/osfBi5qfexBrKUdONk989Wnk4=
-github.com/colonel-byte/cargoship v0.42.3 h1:0yw4STv+dpzMYMk3ioQ7wGgkS0XUucXEB4ecmyamj00=
-github.com/colonel-byte/cargoship v0.42.3/go.mod h1:O1ODXNxdsvPxZZtEA7XMmrBsIY1f1iLSMEgL5j1tH18=
+github.com/colonel-byte/cargoship v0.43.0 h1:QyEGdarAweiJu9d+2c3meJFTmCWfClM9S+9mRNeAw+s=
+github.com/colonel-byte/cargoship v0.43.0/go.mod h1:n6BZhcjWkjRYeHmWLTgiCmcfIGMSdwaba8jWnJW1gfw=
 github.com/containerd/console v1.0.5 h1:R0ymNeydRqH2DmakFNdmjR2k0t7UPuiOV/N/27/qqsc=
 github.com/containerd/console v1.0.5/go.mod h1:YynlIjWYF8myEu6sdkwKIvGQq+cOckRm6So2avqoYAk=
 github.com/containerd/log v0.2.0 h1:BewD/umNgVnoczglOpX8eRMyEy5t5iPlu5AIpnWDONc=
@@ -628,8 +628,8 @@ github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.11.2 h1:S1t28MpG12QmxxzlyN
 github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.11.2/go.mod h1:uJqXrPsnGjiSKl1IfI0eVq0gMEfLBaD8yzOQ1pKpG0E=
 github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.11.3 h1:6gJxQZZ+LulDWBD5Cdk/i8bKKtTS2NDsmIdjZudWW3k=
 github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.11.3/go.mod h1:pyX09Xu5qJ1+4S31v+g38yYN0XlA4WJGmD+El8bav40=
-github.com/sigstore/timestamp-authority/v2 v2.2.0 h1:8q0R5iKss8YxbdoMM929G3djst/yXkdERTQavyLzBiQ=
-github.com/sigstore/timestamp-authority/v2 v2.2.0/go.mod h1:KdNxJI1HURK3EUaOjy3S+dfqoia/Iv/DtcvSR1/R1TI=
+github.com/sigstore/timestamp-authority/v2 v2.2.1 h1:G3hl1xvzIY2wH9EFn0B7rjsDYr8Y37t9PzwkpmK0Koo=
+github.com/sigstore/timestamp-authority/v2 v2.2.1/go.mod h1:bSqT8/DTnFdt++dPuLbadJCHzMPrGkyxvulr+Q5ThHM=
 github.com/sirupsen/logrus v1.7.0/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
 github.com/sirupsen/logrus v1.10.2 h1:G2SED73/qrAu6YwbdxOD6peLkCBI3z7L+ykJFTXJBBo=
 github.com/sirupsen/logrus v1.10.2/go.mod h1:SLEg8TqYulVKKfIGHldVp2K2aYz2DKSVBq4g/H5bR7Q=
@@ -886,8 +886,8 @@ golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1/go.mod h1:I/5z698sn9Ka8T
 golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df/go.mod h1:K8+ghG5WaK9qNqU5K3HdILfMLy1f3aNYFI/wnl100a8=
 gonum.org/v1/gonum v0.17.0 h1:VbpOemQlsSMrYmn7T2OUvQ4dqxQXU+ouZFQsZOx50z4=
 gonum.org/v1/gonum v0.17.0/go.mod h1:El3tOrEuMpv2UdMrbNlKEh9vd86bmQ6vqIcDwxEOc1E=
-google.golang.org/api v0.314.0 h1:1P6RtsfXD7KfUUI7YxdGcJ5Ekw+QHH9dEVTHzWc96p0=
-google.golang.org/api v0.314.0/go.mod h1:kn5kd1IMbs2x4hq99GcaTOumC0fnMYMwLNAfFxzpISU=
+google.golang.org/api v0.315.0 h1:77nwD4sln0GQQqQKb4CY+DJhRwA0AeQ4w0gkbLwRPms=
+google.golang.org/api v0.315.0/go.mod h1:kn5kd1IMbs2x4hq99GcaTOumC0fnMYMwLNAfFxzpISU=
 google.golang.org/genproto v0.0.0-20261012220534-4341edf3f941 h1:CXq2XEi5aEyLjjPZIwqrmQH8ZY4ctUwK7uyAx3mjX/U=
 google.golang.org/genproto v0.0.0-20261012220534-4341edf3f941/go.mod h1:3gK0ehnhP0V7/x3ypGoLyT3d0n6TSi/EcsphIjHrcz4=
 google.golang.org/genproto/googleapis/api v0.0.0-20261026165753-2ffab32bce7e h1:e789sLZjeTdc02ZCQGTSzHOu0fR73+dwPQVKUp67Z88=
