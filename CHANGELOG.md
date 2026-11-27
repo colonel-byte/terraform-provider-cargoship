@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.0](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.8.0...v0.9.0) (2026-11-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** bump github.com/colonel-byte/cargoship from 0.43.1 to 0.44.0 ([#40](https://github.com/colonel-byte/terraform-provider-cargoship/issues/40))
+
+### Build
+
+* **deps:** bump github.com/colonel-byte/cargoship from 0.43.1 to 0.44.0 ([#40](https://github.com/colonel-byte/terraform-provider-cargoship/issues/40)) ([2b55d4f](https://github.com/colonel-byte/terraform-provider-cargoship/commit/2b55d4faa4ba4198206740ad3240e15abf82b5b1))
+* **deps:** bump github.com/k0sproject/rig/v2 from 2.4.0 to 2.4.1 ([#39](https://github.com/colonel-byte/terraform-provider-cargoship/issues/39)) ([c11eb70](https://github.com/colonel-byte/terraform-provider-cargoship/commit/c11eb70040b30eb57adeb36215d3336e1db8badb))
+
 ## [0.8.0](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.7.0...v0.8.0) (2026-11-27)
 
 
