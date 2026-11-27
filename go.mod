@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.31.0
 	github.com/hashicorp/terraform-plugin-log v0.11.0
 	github.com/k0sproject/bootloose v0.9.6
-	github.com/k0sproject/rig/v2 v2.4.0
+	github.com/k0sproject/rig/v2 v2.4.1
 	github.com/stretchr/testify v1.12.1
 	github.com/zarf-dev/zarf v1.0.1
 )
