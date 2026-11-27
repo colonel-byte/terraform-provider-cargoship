@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/colonel-byte/cargoship/api/colonel-byte.dev/v1alpha1"
+	"github.com/colonel-byte/cargoship/api/colonel-byte.dev/v1alpha1/distro"
 	"github.com/colonel-byte/cargoship/config"
 	"github.com/colonel-byte/cargoship/pkg/coci/layers"
 	"github.com/colonel-byte/cargoship/pkg/helpers"
@@ -130,12 +131,35 @@ func AssembleLayers(ctx context.Context, root *oci.Manifest, fetcher content.Fet
 		layers = append(layers, fileLayers...)
 	}
 
+	// A chart tarball is staged like a file and is a layer like one, so a published package
+	// carries it and a pull brings it back. It is never uploaded to a host -- see
+	// distro.ChartFiles -- but it still has to travel inside the package.
+	if len(dis.Spec.Config.Charts) > 0 {
+		chartLayers, err := LayersFromFiles(ctx, root, distro.ChartFiles(dis.Spec.Config.Charts), config.ChartsDir)
+		if err != nil {
+			return nil, err
+		}
+		layers = append(layers, chartLayers...)
+	}
+
 	if len(dis.Spec.Config.OS.Files) > 0 {
 		fileLayers, err := LayersFromFiles(ctx, root, dis.Spec.Config.OS.Files, config.OSDir)
 		if err != nil {
 			return nil, err
 		}
 		layers = append(layers, fileLayers...)
+	}
+
+	// Create rewrote Spec.Values to the paths it packaged the files under, so they are
+	// located verbatim rather than rebuilt from an index the way Config.Files are.
+	for _, path := range append([]string{dis.Spec.Values.Schema}, dis.Spec.Values.Files...) {
+		if path == "" {
+			continue
+		}
+		desc := root.Locate(path)
+		if !oci.IsEmptyDescriptor(desc) {
+			layers = append(layers, desc)
+		}
 	}
 
 	return oci.RemoveDuplicateDescriptors(layers), nil

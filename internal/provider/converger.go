@@ -29,6 +29,7 @@ import (
 	"github.com/colonel-byte/cargoship/pkg/action"
 	"github.com/colonel-byte/cargoship/pkg/distro"
 	"github.com/colonel-byte/cargoship/pkg/helmvalues"
+	pkglayout "github.com/colonel-byte/cargoship/pkg/packager/layout"
 	"github.com/colonel-byte/cargoship/pkg/phase"
 	"github.com/colonel-byte/cargoship/pkg/riglogger"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -314,10 +315,11 @@ func (c cargoshipConverger) Apply(ctx context.Context, cfg *cluster.Cluster, opt
 	if err != nil {
 		return result, err
 	}
-	if err := layout.ApplyValues(values); err != nil {
+	facts := pkglayout.ClusterFacts{LoadBalancer: cfg.Spec.Config.LoadBalancer}
+	if err := layout.ApplyValues(values, facts); err != nil {
 		return result, err
 	}
-	if err := layout.RenderFiles(ctx, values); err != nil {
+	if err := layout.RenderFiles(ctx, values, facts); err != nil {
 		return result, err
 	}
 
