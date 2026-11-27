@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.0](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.7.0...v0.8.0) (2026-11-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** bump github.com/colonel-byte/cargoship from 0.42.3 to 0.43.1 ([#38](https://github.com/colonel-byte/terraform-provider-cargoship/issues/38))
+
+### Build
+
+* **deps:** bump actions/create-github-app-token from 3.3.0 to 3.4.0 in the core group ([#35](https://github.com/colonel-byte/terraform-provider-cargoship/issues/35)) ([3468431](https://github.com/colonel-byte/terraform-provider-cargoship/commit/346843182fac2fe81a06d51251a9772e3a2042a0))
+* **deps:** bump actions/setup-go from 7.0.0 to 7.1.0 in the core group ([#33](https://github.com/colonel-byte/terraform-provider-cargoship/issues/33)) ([fa61933](https://github.com/colonel-byte/terraform-provider-cargoship/commit/fa61933e03ab71d0483294faa6a262d696ab37d3))
+* **deps:** bump github.com/colonel-byte/cargoship from 0.42.2 to 0.42.3 ([#34](https://github.com/colonel-byte/terraform-provider-cargoship/issues/34)) ([12a50ce](https://github.com/colonel-byte/terraform-provider-cargoship/commit/12a50ce3e28c530e5ee25d247f08276b6eddb78c))
+* **deps:** bump github.com/colonel-byte/cargoship from 0.42.3 to 0.43.1 ([#38](https://github.com/colonel-byte/terraform-provider-cargoship/issues/38)) ([f773104](https://github.com/colonel-byte/terraform-provider-cargoship/commit/f77310459ce1ded578a44f95393479d42092e81d))
+* **deps:** bump j178/prek-action from 3.1.0 to 3.1.1 in the core group ([#31](https://github.com/colonel-byte/terraform-provider-cargoship/issues/31)) ([1e2b85a](https://github.com/colonel-byte/terraform-provider-cargoship/commit/1e2b85ac1ac55151ed0ce47e0e1b16621db0380d))
+
 ## [0.7.0](https://github.com/colonel-byte/terraform-provider-cargoship/compare/v0.6.0...v0.7.0) (2026-11-18)
 
 
